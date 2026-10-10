@@ -247,7 +247,7 @@ const BUSES = [{
 // ---- 場所 ----
 const DEFAULT_PLACES = [
   { id: 'jiyu', name: 'はこだて自由市場', lat: 41.77332, lng: 140.73449, stay: 30, note: '' },
-  { id: 'crepe', name: '街角クレープ', lat: 41.765068, lng: 140.718323, stay: 30, note: '末広町12-8 2階／11:00〜16:00（売切次第終了）／木・金定休' },
+  { id: 'crepe', name: '街角クレープ', lat: 41.764091, lng: 140.711044, stay: 30, note: '元町14-4 1階／11:00〜16:00・木金定休（要確認）／電停から上り坂' },
   { id: 'goryo', name: '五稜郭（五稜郭タワー）', lat: 41.79459, lng: 140.75396, stay: 90, note: '' },
   { id: 'yunohama', name: '湯の浜ホテル', lat: 41.77440, lng: 140.78570, stay: 0, note: '湯川町1-2-30' },
 ];
@@ -270,7 +270,12 @@ let state = load();
 function load() {
   try {
     const s = JSON.parse(localStorage.getItem(KEY));
-    if (s && Array.isArray(s.places)) return Object.assign({ pick: {}, mode: {}, anchor: null, day: 'auto' }, s);
+    if (s && Array.isArray(s.places)) {
+      // 保存済みの旅程にも住所の訂正を反映する
+      const crepe = s.places.find(p => p.id === 'crepe' && p.lat === 41.765068);
+      if (crepe) Object.assign(crepe, DEFAULT_PLACES.find(p => p.id === 'crepe'), { stay: crepe.stay });
+      return Object.assign({ pick: {}, mode: {}, anchor: null, day: 'auto' }, s);
+    }
   } catch (e) {}
   return { places: DEFAULT_PLACES.map(p => ({ ...p })), pick: {}, mode: {}, anchor: null, day: 'auto' };
 }
