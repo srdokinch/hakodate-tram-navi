@@ -142,6 +142,7 @@
       <span class="small">歩く時間が少ない経路を自動で選びます</span>
       <button class="btn sm ghost" id="editBtn">✏️ 編集</button>
     </div>
+    <div id="clearBar" class="hidden" style="margin:0 2px 12px"><button class="btn sm" onclick="clearVisited()">🗑 行ったところをまとめて消す</button></div>
     <div id="plan" class="tl"></div>
     <div style="text-align:center;margin:6px 0 16px"><button class="btn" onclick="showTab('add')">＋ 行き先を追加</button></div>
   </section>
@@ -398,8 +399,8 @@ function computePlan() {
   for (let i = 0; i < P.length; i++) {
     const p = P[i];
     if (i < start.idx) { rows.push({ p, done: true }); continue; }
-    const row = { p, arrive: i === start.idx ? null : rows[i - 1].arriveNext, leave: null };
-    if (i === start.idx) row.leave = leave; else if (row.arrive != null) row.leave = row.arrive + (+p.stay || 0);
+    const row = { p, arrive: i === start.idx ? (start.arrive ?? null) : rows[i - 1].arriveNext, leave: null };
+    if (i === start.idx) row.leave = start.arrive != null ? start.arrive + (+p.stay || 0) : leave; else if (row.arrive != null) row.leave = row.arrive + (+p.stay || 0);
     if (i < P.length - 1 && row.leave != null) {
       const B = P[i + 1];
       const key = p.id + '>' + B.id;
@@ -434,10 +435,10 @@ function renderPlan() {
     const p = r.p, last = i === P.length - 1;
     const sp = placeStop(p);
     let times = '';
-    if (r.done) times = '<span class="chip">✓ 済み</span>';
+    if (r.done) times = `<span class="chip">✓ 行った</span><button class="btn sm" style="margin-left:auto" onclick="delVisited(${i})">🗑 消す</button>`;
     else {
       if (r.arrive != null) times += `<span class="chip">着 <b>${hm(r.arrive)}</b></span>`;
-      if (!last && i !== rows.findIndex(x => !x.done) && +p.stay) times += `<span class="chip">滞在 ${+p.stay}分</span>`;
+      if (!last && (i !== rows.findIndex(x => !x.done) || r.arrive != null) && +p.stay) times += `<span class="chip">滞在 ${+p.stay}分</span>`;
       if (!last && r.leave != null) times += `<span class="chip">発 <b>${hm(r.leave)}</b></span>`;
     }
     h += `<div class="node ${r.done ? 'done' : ''}"><div class="dot">${last ? '🏨' : i + 1}</div>
@@ -447,7 +448,9 @@ function renderPlan() {
         <div class="times">${times}</div>
         <div class="placefoot">
           <span class="small">🚏 ${esc(STOPS[sp.i])}電停から徒歩${sp.w}分</span>
-          ${!last && !r.done ? `<button class="btn sm" onclick="leaveNow(${i})">ここを今出る</button>` : ''}
+          ${!last && !r.done ? (state.anchor && state.anchor.idx === i && state.anchor.arrive == null
+            ? `<button class="btn sm" onclick="delVisited(${i})">🗑 行った・消す</button>`
+            : `<button class="btn sm" onclick="leaveNow(${i})">ここを今出る</button>`) : ''}
         </div>
         <div class="edit">
           ${!last ? `滞在 <input type="number" min="0" value="${+p.stay || 0}" onchange="setStay(${i},this.value)"> 分` : ''}
@@ -462,6 +465,7 @@ function renderPlan() {
   const el = document.getElementById('plan');
   el.innerHTML = h;
   el.classList.toggle('editing', editing);
+  document.getElementById('clearBar').classList.toggle('hidden', !visitedIdx().length);
   renderHero(rows, now);
 }
 
@@ -578,8 +582,38 @@ function movePlace(i, d) {
 }
 function delPlace(i) {
   if (!confirm(`「${state.places[i].name}」を旅程から外しますか？`)) return;
-  state.places.splice(i, 1); state.anchor = null; save(); renderAll();
+  removePlaces([i]);
 }
+// 出発済みの場所（出発点含む）。出発点を消すときは、次の場所の到着時刻を引き継いで計算を保つ
+function visitedIdx() {
+  const a = state.anchor;
+  // arrive がある出発点は「まだ着いていない（到着予定）」なので行った扱いにしない
+  return a && a.idx < state.places.length ? [...Array(a.arrive != null ? a.idx : a.idx + 1).keys()] : [];
+}
+function removePlaces(idxs) {
+  const a = state.anchor, P = state.places;
+  let anchor = a && a.idx < P.length ? { ...a } : null;
+  if (anchor && idxs.includes(anchor.idx)) {
+    const row = computePlan().rows[anchor.idx];
+    const next = P[anchor.idx + 1];
+    anchor = row && row.arriveNext != null && next
+      ? { idx: anchor.idx, leave: row.arriveNext + (+next.stay || 0), arrive: row.arriveNext, placeId: next.id } : null;
+  }
+  const ids = new Set(idxs.map(i => P[i].id));
+  state.places = P.filter(p => !ids.has(p.id));
+  if (anchor) {
+    const keepId = anchor.placeId || (a && P[a.idx].id);
+    const ni = state.places.findIndex(p => p.id === keepId);
+    state.anchor = ni >= 0 ? { idx: ni, leave: anchor.leave, arrive: anchor.arrive } : null;
+  } else state.anchor = null;
+  save(); renderAll();
+}
+function clearVisited() {
+  const v = visitedIdx();
+  if (!v.length || !confirm(`行ったところ ${v.length}件 を旅程から消しますか？`)) return;
+  removePlaces(v);
+}
+function delVisited(i) { removePlaces([i]); }
 
 // ---- 時刻表検索 ----
 function renderSearch() {
