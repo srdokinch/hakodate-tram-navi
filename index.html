@@ -9,98 +9,141 @@
 <link rel="manifest" href="manifest.json">
 <style>
   :root {
-    --bg: #f4f6f9; --card: #fff; --ink: #1d2733; --sub: #66727f; --line: #e2e7ee;
-    --main: #0f4c81; --r2: #2e7d32; --r5: #c62828; --bus: #e08a00; --walk: #6b7a8a; --warn: #b26a00;
+    --bg: #eef2f6; --card: #fff; --ink: #18222d; --sub: #6b7785; --line: #e3e8ee;
+    --main: #0f4c81; --main-soft: #e6eef7; --r2: #2e7d32; --r5: #c62828; --bus: #d97a00; --warn: #a85f00;
   }
-  * { box-sizing: border-box; }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Noto Sans JP", sans-serif;
-         background: var(--bg); color: var(--ink); font-size: 16px; line-height: 1.5;
-         padding-bottom: calc(72px + env(safe-area-inset-bottom)); }
+         background: var(--bg); color: var(--ink); font-size: 16px; line-height: 1.45;
+         padding-bottom: calc(76px + env(safe-area-inset-bottom)); }
   header { position: sticky; top: 0; z-index: 10; background: var(--main); color: #fff;
-           padding: calc(8px + env(safe-area-inset-top)) 14px 8px; }
-  header h1 { margin: 0; font-size: 18px; }
-  header .meta { font-size: 13px; opacity: .9; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-  header select { font-size: 13px; border-radius: 6px; border: 0; padding: 2px 4px; }
-  main { padding: 12px; max-width: 640px; margin: 0 auto; }
-  nav { position: fixed; bottom: 0; left: 0; right: 0; display: flex; background: #fff; border-top: 1px solid var(--line);
-        padding-bottom: env(safe-area-inset-bottom); z-index: 10; }
-  nav button { flex: 1; border: 0; background: none; padding: 10px 0 8px; font-size: 12px; color: var(--sub); }
-  nav button .ic { display: block; font-size: 22px; line-height: 1.1; }
+           padding: calc(10px + env(safe-area-inset-top)) 16px 10px; display: flex; align-items: center; gap: 10px; }
+  header h1 { margin: 0; font-size: 17px; flex: 1; white-space: nowrap; }
+  header #clock { white-space: nowrap; font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums; }
+  header select { width: auto; font-size: 12px; border: 1px solid rgba(255,255,255,.5); border-radius: 999px;
+                  padding: 3px 8px; background: rgba(255,255,255,.15); color: #fff; }
+  header select option { color: #000; }
+  main { padding: 12px; max-width: 600px; margin: 0 auto; }
+  nav { position: fixed; bottom: 0; left: 0; right: 0; display: flex; background: rgba(255,255,255,.97);
+        border-top: 1px solid var(--line); padding-bottom: env(safe-area-inset-bottom); z-index: 10; }
+  nav button { flex: 1; border: 0; background: none; padding: 9px 0 7px; font-size: 11px; color: var(--sub); }
+  nav button .ic { display: block; font-size: 22px; line-height: 1.15; }
   nav button.on { color: var(--main); font-weight: 700; }
-  .card { background: var(--card); border-radius: 14px; padding: 12px 14px; margin-bottom: 10px;
-          box-shadow: 0 1px 2px rgba(0,0,0,.06); }
-  .place { border-left: 6px solid var(--main); }
-  .place.done { opacity: .45; }
-  .place h2 { margin: 0; font-size: 18px; }
-  .place .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; font-size: 14px; color: var(--sub); }
-  .place .time { font-size: 15px; color: var(--ink); font-weight: 600; }
-  .note { font-size: 13px; color: var(--warn); }
+  .card { background: var(--card); border-radius: 16px; padding: 14px; margin-bottom: 12px; box-shadow: 0 1px 3px rgba(16,34,52,.08); }
   .small { font-size: 13px; color: var(--sub); }
-  .btn { display: inline-block; border: 1px solid var(--main); color: var(--main); background: #fff; border-radius: 999px;
-         padding: 6px 12px; font-size: 14px; text-decoration: none; cursor: pointer; }
+  .note { font-size: 13px; color: var(--warn); margin-top: 2px; }
+  .btn { display: inline-flex; align-items: center; gap: 4px; border: 1px solid var(--main); color: var(--main); background: #fff;
+         border-radius: 999px; padding: 7px 14px; font-size: 14px; font-weight: 600; text-decoration: none; cursor: pointer; white-space: nowrap; }
   .btn.fill { background: var(--main); color: #fff; }
-  .btn.sm { padding: 3px 9px; font-size: 13px; }
-  .btn:disabled { opacity: .4; }
-  .leg { margin: -4px 0 6px 18px; padding: 6px 0 6px 16px; border-left: 3px dashed #b9c4d0; }
-  .step { display: flex; gap: 8px; align-items: flex-start; margin: 4px 0; font-size: 15px; }
-  .step .ic { width: 26px; text-align: center; flex: none; }
-  .tag { display: inline-block; border-radius: 6px; padding: 0 6px; font-size: 12px; font-weight: 700; color: #fff; vertical-align: 1px; }
-  .tag.r2 { background: var(--r2); } .tag.r5 { background: var(--r5); } .tag.r25 { background: var(--main); }
-  .tag.bus { background: var(--bus); } .tag.low { background: #fff; color: var(--main); border: 1px solid var(--main); }
-  .big { font-size: 20px; font-weight: 800; }
-  .count { font-size: 13px; color: var(--r5); font-weight: 700; }
-  .modes { display: flex; gap: 6px; flex-wrap: wrap; margin: 4px 0; }
-  .modes button { border: 1px solid var(--line); background: #fff; border-radius: 8px; padding: 4px 8px; font-size: 13px; }
-  .modes button.on { border-color: var(--main); background: #e8f0f8; color: var(--main); font-weight: 700; }
-  .alts { margin: 6px 0 0; padding: 0; list-style: none; }
-  .alts li { display: flex; justify-content: space-between; align-items: center; padding: 7px 8px; border-radius: 8px;
-             border: 1px solid var(--line); margin-bottom: 5px; font-size: 15px; background: #fff; }
-  .alts li.sel { border-color: var(--main); background: #e8f0f8; }
-  .alts li.past { opacity: .4; }
-  table.tt { width: 100%; border-collapse: collapse; font-size: 15px; }
-  table.tt td, table.tt th { padding: 8px 4px; border-bottom: 1px solid var(--line); text-align: left; }
-  table.tt th { font-size: 12px; color: var(--sub); font-weight: 600; }
-  label.f { display: block; font-size: 13px; color: var(--sub); margin: 8px 0 2px; }
-  input, select, textarea { font-size: 16px; padding: 8px; border: 1px solid #c9d2dc; border-radius: 8px; width: 100%; background: #fff; }
-  .two { display: flex; gap: 8px; } .two > * { flex: 1; }
-  .hidden { display: none; }
-  .warnbox { background: #fff5e5; border: 1px solid #f0c27b; border-radius: 10px; padding: 8px 10px; font-size: 13px; margin-bottom: 10px; }
-  .preset { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--line); }
-  .preset:last-child { border-bottom: 0; }
-  .ctrl { display: flex; gap: 4px; }
-  .ctrl button { border: 1px solid var(--line); background: #fff; border-radius: 6px; font-size: 13px; padding: 2px 7px; }
+  .btn.sm { padding: 4px 10px; font-size: 13px; }
+  .btn.ghost { border-color: transparent; background: var(--main-soft); }
+  .btn:disabled { opacity: .35; }
   a { color: var(--main); }
+
+  /* 次の行動 */
+  .hero { background: linear-gradient(135deg, #0f4c81, #1c6bb0); color: #fff; border-radius: 18px; padding: 16px; margin-bottom: 12px;
+          box-shadow: 0 4px 14px rgba(15,76,129,.3); }
+  .hero .lbl { font-size: 13px; opacity: .85; }
+  .hero .main { display: flex; align-items: baseline; gap: 10px; margin: 2px 0 6px; }
+  .hero .t { font-size: 40px; font-weight: 800; letter-spacing: .5px; font-variant-numeric: tabular-nums; line-height: 1.1; }
+  .hero .cd { font-size: 16px; font-weight: 800; background: #fff; color: var(--main); border-radius: 999px; padding: 2px 10px; }
+  .hero .cd.soon { background: #ffd54f; color: #5d4300; }
+  .hero .line { font-size: 16px; font-weight: 700; }
+  .hero .sub { font-size: 14px; opacity: .92; margin-top: 4px; }
+  .hero .tag { box-shadow: 0 0 0 1px rgba(255,255,255,.6); }
+
+  .startbar { display: flex; align-items: center; gap: 8px; padding: 10px 14px; }
+  .startbar input { width: auto; flex: none; padding: 5px 8px; }
+  .startbar .grow { flex: 1; }
+
+  /* タイムライン */
+  .tl { position: relative; padding-left: 34px; }
+  .tl::before { content: ""; position: absolute; left: 14px; top: 18px; bottom: 18px; width: 3px; background: #c9d5e2; border-radius: 2px; }
+  .node { position: relative; }
+  .node .dot { position: absolute; left: -34px; top: 12px; width: 31px; height: 31px; border-radius: 50%; background: var(--main);
+               color: #fff; font-weight: 800; display: flex; align-items: center; justify-content: center; font-size: 15px;
+               box-shadow: 0 0 0 4px var(--bg); }
+  .node.done { opacity: .45; }
+  .node.done .dot { background: #9aa7b4; }
+  .place h2 { margin: 0; font-size: 18px; line-height: 1.3; }
+  .times { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
+  .chip { display: inline-flex; align-items: center; gap: 4px; font-size: 13px; background: #f1f4f8; color: var(--ink);
+          border-radius: 999px; padding: 3px 10px; }
+  .chip b { font-size: 15px; font-variant-numeric: tabular-nums; }
+  .placefoot { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 10px; }
+  .edit { display: none; margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--line); align-items: center; gap: 6px; flex-wrap: wrap; font-size: 14px; }
+  .editing .edit { display: flex; }
+  .edit input { width: 70px; padding: 4px 6px; }
+  .edit button { border: 1px solid var(--line); background: #fff; border-radius: 8px; font-size: 14px; padding: 4px 10px; }
+  .edit .del { color: var(--r5); border-color: #f2c4c4; margin-left: auto; }
+
+  /* 区間（移動） */
+  .legwrap { margin: -2px 0 12px; }
+  .modes { display: flex; gap: 6px; overflow-x: auto; padding: 2px 0 8px; scrollbar-width: none; }
+  .modes button { flex: none; border: 1px solid var(--line); background: #fff; border-radius: 999px; padding: 5px 11px; font-size: 13px; color: var(--sub); }
+  .modes button.on { border-color: var(--main); background: var(--main); color: #fff; font-weight: 700; }
+  .ticket { background: #fff; border-radius: 14px; border: 1px solid var(--line); overflow: hidden; }
+  .walk { display: flex; gap: 8px; align-items: center; padding: 8px 12px; font-size: 14px; color: var(--sub); background: #f7f9fb; }
+  .walk a { margin-left: auto; font-size: 13px; }
+  .ride { padding: 10px 12px; display: grid; grid-template-columns: auto 1fr; column-gap: 12px; row-gap: 2px; align-items: baseline; }
+  .ride .tm { font-size: 24px; font-weight: 800; font-variant-numeric: tabular-nums; }
+  .ride .tm.arr { font-size: 18px; font-weight: 700; color: var(--sub); }
+  .ride .st { font-size: 16px; font-weight: 700; }
+  .ride .meta { grid-column: 2; font-size: 13px; color: var(--sub); display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin: 2px 0 6px; }
+  .xfer { padding: 4px 12px; font-size: 13px; color: var(--warn); background: #fff7ea; }
+  .tag { display: inline-block; border-radius: 6px; padding: 1px 7px; font-size: 12px; font-weight: 700; color: #fff; }
+  .tag.r2 { background: var(--r2); } .tag.r5 { background: var(--r5); } .tag.r25 { background: var(--main); }
+  .tag.bus { background: var(--bus); } .tag.low { background: #fff; color: var(--main); border: 1px solid var(--main); padding: 0 6px; }
+  .count { font-size: 12px; font-weight: 800; color: #fff; background: var(--r5); border-radius: 999px; padding: 1px 8px; }
+  .count.later { background: #8a96a3; }
+  .alts { display: flex; gap: 6px; overflow-x: auto; padding: 8px 12px 10px; border-top: 1px solid var(--line); scrollbar-width: none; }
+  .alts .lbl { flex: none; font-size: 12px; color: var(--sub); align-self: center; }
+  .alts button { flex: none; border: 1px solid var(--line); background: #fff; border-radius: 10px; padding: 4px 9px; font-size: 14px;
+                 font-variant-numeric: tabular-nums; line-height: 1.2; }
+  .alts button small { display: block; font-size: 10px; color: var(--sub); }
+  .alts button.sel { border-color: var(--main); background: var(--main-soft); color: var(--main); font-weight: 800; }
+  .info { padding: 10px 12px; font-size: 14px; }
+
+  /* 検索・追加 */
+  .res { display: grid; grid-template-columns: 64px 1fr auto; gap: 4px 10px; align-items: center; padding: 10px 2px; border-bottom: 1px solid var(--line); }
+  .res:last-child { border-bottom: 0; }
+  .res .tm { font-size: 22px; font-weight: 800; font-variant-numeric: tabular-nums; }
+  .res .arr { font-size: 14px; color: var(--sub); }
+  label.f { display: block; font-size: 13px; color: var(--sub); margin: 10px 0 3px; }
+  input, select, textarea { font-size: 16px; padding: 9px; border: 1px solid #c9d2dc; border-radius: 10px; width: 100%; background: #fff; color: var(--ink); }
+  .two { display: flex; gap: 8px; } .two > * { flex: 1; }
+  .hidden { display: none !important; }
+  .preset { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--line); }
+  .preset:last-child { border-bottom: 0; }
+  h3 { margin: 0 0 6px; font-size: 16px; }
 </style>
 </head>
 <body>
 <header>
   <h1>🚃 函館 市電ナビ</h1>
-  <div class="meta">
-    <span id="clock"></span>
-    <select id="dayKind" aria-label="ダイヤ">
-      <option value="auto">ダイヤ自動</option>
-      <option value="holiday">土日祝ダイヤ</option>
-      <option value="weekday">平日ダイヤ</option>
-    </select>
-    <span id="dayLabel"></span>
-  </div>
+  <span id="clock"></span>
+  <select id="dayKind" aria-label="ダイヤ">
+    <option value="auto">自動</option>
+    <option value="holiday">土日祝</option>
+    <option value="weekday">平日</option>
+  </select>
 </header>
 
 <main>
   <!-- 旅程 -->
   <section id="tab-plan">
-    <div class="card">
-      <div class="two" style="align-items:end">
-        <div>
-          <label class="f">出発時刻（1件目の場所を出る時刻）</label>
-          <input type="time" id="startTime">
-        </div>
-        <div style="flex:none"><button class="btn fill" id="nowBtn">今にする</button></div>
-      </div>
-      <div class="small" style="margin-top:6px">徒歩が少ない順に経路を選びます。場所カードの「ここを今出る」を押すと、そこから今の時刻で再計算します。</div>
+    <div id="hero"></div>
+    <div class="card startbar">
+      <span class="small grow">最初の場所を出る時刻</span>
+      <input type="time" id="startTime">
+      <button class="btn sm fill" id="nowBtn">今</button>
     </div>
-    <div id="plan"></div>
-    <div style="text-align:center;margin:12px 0"><button class="btn" onclick="showTab('add')">＋ 行き先を追加</button></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin:4px 2px 10px">
+      <span class="small">歩く時間が少ない経路を自動で選びます</span>
+      <button class="btn sm ghost" id="editBtn">✏️ 編集</button>
+    </div>
+    <div id="plan" class="tl"></div>
+    <div style="text-align:center;margin:6px 0 16px"><button class="btn" onclick="showTab('add')">＋ 行き先を追加</button></div>
   </section>
 
   <!-- 時刻表検索 -->
@@ -290,7 +333,7 @@ function routeTag(tr) {
   return `<span class="tag ${c}">${num ? num + '系統 ' : ''}${esc(tr.to)}行</span>${tr.low ? ' <span class="tag low">低床</span>' : ''}`;
 }
 function platformHint(tr) {
-  return tr.dir === 'up' ? '湯の川方面のりば' : '函館駅前・十字街方面のりば';
+  return tr.dir === 'up' ? '湯の川方面のりば' : '函館駅前方面のりば';
 }
 function nearestStops(p, k = 2) {
   return STOPS.map((s, i) => ({ i, d: distM(p, stopPos(i)) })).sort((x, y) => x.d - y.d).slice(0, k);
@@ -381,94 +424,146 @@ function computePlan() {
   return { rows, kind };
 }
 
+let editing = false;
 function renderPlan() {
   const { rows } = computePlan();
   const now = nowMin();
   const P = state.places;
   let h = '';
   rows.forEach((r, i) => {
-    const p = r.p;
+    const p = r.p, last = i === P.length - 1;
     const sp = placeStop(p);
-    h += `<div class="card place ${r.done ? 'done' : ''}">
-      <div style="display:flex;justify-content:space-between;gap:8px">
-        <h2>${i + 1}. ${esc(p.name)}</h2>
-        <div class="ctrl">
-          <button onclick="movePlace(${i},-1)" ${i === 0 ? 'disabled' : ''}>▲</button>
-          <button onclick="movePlace(${i},1)" ${i === P.length - 1 ? 'disabled' : ''}>▼</button>
-          <button onclick="delPlace(${i})">✕</button>
+    let times = '';
+    if (r.done) times = '<span class="chip">✓ 済み</span>';
+    else {
+      if (r.arrive != null) times += `<span class="chip">着 <b>${hm(r.arrive)}</b></span>`;
+      if (!last && i !== rows.findIndex(x => !x.done) && +p.stay) times += `<span class="chip">滞在 ${+p.stay}分</span>`;
+      if (!last && r.leave != null) times += `<span class="chip">発 <b>${hm(r.leave)}</b></span>`;
+    }
+    h += `<div class="node ${r.done ? 'done' : ''}"><div class="dot">${last ? '🏨' : i + 1}</div>
+      <div class="card place">
+        <h2>${esc(p.name)}</h2>
+        ${p.note ? `<div class="note">${esc(p.note)}</div>` : ''}
+        <div class="times">${times}</div>
+        <div class="placefoot">
+          <span class="small">🚏 ${esc(STOPS[sp.i])}電停から徒歩${sp.w}分</span>
+          ${!last && !r.done ? `<button class="btn sm" onclick="leaveNow(${i})">ここを今出る</button>` : ''}
         </div>
-      </div>
-      ${p.note ? `<div class="note">${esc(p.note)}</div>` : ''}
-      <div class="row">
-        ${r.done ? '<span>済</span>' : `
-          ${r.arrive != null ? `<span class="time">着 ${hm(r.arrive)}</span>` : ''}
-          ${r.leave != null && i < P.length - 1 ? `<span class="time">発 ${hm(r.leave)}</span>` : ''}`}
-        ${i < P.length - 1 ? `<span>滞在 <input type="number" min="0" value="${+p.stay || 0}" style="width:64px;padding:2px 4px" onchange="setStay(${i},this.value)"> 分</span>` : ''}
-      </div>
-      <div class="row" style="margin-top:4px">
-        <span>最寄り：${esc(STOPS[sp.i])}電停 徒歩${sp.w}分</span>
-        ${i < P.length - 1 ? `<button class="btn sm fill" onclick="leaveNow(${i})">ここを今出る</button>` : ''}
-      </div>
-    </div>`;
-    if (r.leg) h += renderLeg(r, now);
-    else if (i < P.length - 1 && !r.done) h += `<div class="leg small">（前の区間が決まると表示）</div>`;
+        <div class="edit">
+          ${!last ? `滞在 <input type="number" min="0" value="${+p.stay || 0}" onchange="setStay(${i},this.value)"> 分` : ''}
+          <button onclick="movePlace(${i},-1)" ${i === 0 ? 'disabled' : ''}>↑</button>
+          <button onclick="movePlace(${i},1)" ${last ? 'disabled' : ''}>↓</button>
+          <button class="del" onclick="delPlace(${i})">削除</button>
+        </div>
+      </div></div>`;
+    if (r.leg) h += `<div class="node legwrap">${renderLeg(r, now)}</div>`;
+    else if (!last && !r.done) h += `<div class="node legwrap small">前の区間が決まると表示します</div>`;
   });
-  document.getElementById('plan').innerHTML = h;
+  const el = document.getElementById('plan');
+  el.innerHTML = h;
+  el.classList.toggle('editing', editing);
+  renderHero(rows, now);
+}
+
+function walkRow(text, a, b) {
+  return `<div class="walk">🚶 <span>${text}</span>${a && b && a.lat != null && b.lat != null ? `<a href="${gmapWalk(a, b)}" target="_blank" rel="noopener">地図 ›</a>` : ''}</div>`;
+}
+function rideRows(dep, from, arr, to, meta, now, extra = '') {
+  return `<div class="ride">
+    <div class="tm">${hm(dep)}</div><div class="st">${esc(from)} ${now != null ? countdown(dep, now) : ''}</div>
+    <div class="meta">${meta}</div>
+    <div class="tm arr">${hm(arr)}</div><div class="st">${esc(to)} <span class="small">で降りる${extra}</span></div>
+  </div>`;
 }
 
 function renderLeg(r, now) {
   const { key, o, mode, sel } = r.leg;
   const A = r.p;
+  const B = state.places.find(p => p.id === key.split('>')[1]);
   const modeBtn = (m, label) => o[m] ? `<button class="${mode === m ? 'on' : ''}" onclick="setMode('${key}','${m}')">${label}</button>` : '';
-  let h = `<div class="leg"><div class="modes">
-    ${modeBtn('tram', '🚃 市電' + (o.tram ? `（徒歩${o.tram.walk}分）` : ''))}
-    ${modeBtn('bus', '🚌 バス' + (o.bus ? `（徒歩${o.bus.walk}分）` : ''))}
+  let h = `<div class="modes">
+    ${modeBtn('tram', '🚃 市電' + (o.tram ? ` 歩${o.tram.walk}分` : ''))}
+    ${modeBtn('bus', '🚌 バス' + (o.bus ? ` 歩${o.bus.walk}分` : ''))}
     ${o.walk && o.walk.min <= 25 ? modeBtn('walk', `🚶 徒歩${o.walk.min}分`) : ''}
     ${modeBtn('taxi', '🚕 タクシー')}
-  </div>`;
-  const B = state.places[state.places.findIndex(p => p.id === key.split('>')[1])];
+  </div><div class="ticket">`;
   if (mode === 'tram' && o.tram) {
     const { sa, sb, list } = o.tram;
-    h += `<div class="step"><span class="ic">🚶</span><span>${esc(STOPS[sa.i])}電停まで 徒歩${sa.w}分 ${A.lat != null ? `<a class="small" href="${gmapWalk(A, stopPos(sa.i))}" target="_blank" rel="noopener">地図</a>` : ''}</span></div>`;
-    if (!sel) h += `<div class="step"><span class="ic">⚠️</span><span>この後の市電がありません</span></div>`;
+    h += walkRow(`${esc(STOPS[sa.i])}電停まで ${sa.w}分`, A, stopPos(sa.i));
+    if (!sel) h += `<div class="info">⚠️ この後の市電がありません</div>`;
     else {
       sel.legs.forEach((lg, k) => {
-        if (k > 0) h += `<div class="step"><span class="ic">🔁</span><span>十字街で乗り換え</span></div>`;
-        h += `<div class="step"><span class="ic">🚃</span><span><span class="big">${hm(lg.dep)}</span> ${esc(STOPS[lg.a])} 発 ${k === 0 ? countdown(lg.dep, now) : ''}<br>
-          ${routeTag(lg.tr)} <span class="small">${platformHint(lg.tr)}</span><br>
-          → <b>${hm(lg.arr)}</b> ${esc(STOPS[lg.b])} 着 <span class="small">（${lg.n}駅・${lg.arr - lg.dep}分）</span></span></div>`;
+        if (k > 0) h += `<div class="xfer">🔁 十字街で乗り換え</div>`;
+        h += rideRows(lg.dep, STOPS[lg.a], lg.arr, STOPS[lg.b],
+          `${routeTag(lg.tr)}<span>${platformHint(lg.tr)}</span>`, k === 0 ? now : null, `（${lg.n}駅・${lg.arr - lg.dep}分）`);
       });
-      h += `<div class="step"><span class="ic">🚶</span><span>${esc(B.name)}まで 徒歩${sb.w}分 ${B.lat != null ? `<a class="small" href="${gmapWalk(stopPos(sb.i), B)}" target="_blank" rel="noopener">地図</a>` : ''}</span></div>`;
-      h += `<details><summary class="small">他の時刻の電車を選ぶ</summary><ul class="alts">` +
-        list.map(x => `<li class="${x === sel ? 'sel' : ''}" onclick="pick('${key}',${x.dep})">
-          <span><b>${hm(x.dep)}</b> → ${hm(x.arr)}　${routeTag(x.legs[0].tr)}</span><span class="small">${x.legs.length > 1 ? '乗換1回' : ''}</span></li>`).join('') +
-        `</ul></details>`;
+      h += walkRow(`${esc(B.name)}まで ${sb.w}分`, stopPos(sb.i), B);
+      h += altRow(list.map(x => ({ dep: x.dep, arr: x.arr, on: x === sel, js: `pick('${key}',${x.dep})` })));
     }
   } else if (mode === 'bus' && o.bus) {
     const { bus, wa, wb, list } = o.bus;
-    h += `<div class="step"><span class="ic">🚶</span><span>${esc(bus.from.name)}バス停まで 徒歩${wa}分 <a class="small" href="${gmapWalk(A, bus.from)}" target="_blank" rel="noopener">地図</a></span></div>`;
-    if (!sel) h += `<div class="step"><span class="ic">⚠️</span><span>この後のバスがありません（最終 ${hm(bus[dayKind()].slice(-1)[0][0])}）。市電かタクシーにしてください。</span></div>`;
+    h += walkRow(`${esc(bus.from.name)}バス停まで ${wa}分`, A, bus.from);
+    if (!sel) h += `<div class="info">⚠️ この後のバスはありません（最終 ${hm(bus[dayKind()].slice(-1)[0][0])}）。市電かタクシーを選んでください。</div>`;
     else {
-      h += `<div class="step"><span class="ic">🚌</span><span><span class="big">${hm(sel.dep)}</span> ${esc(bus.from.name)} 発 ${countdown(sel.dep, now)}<br>
-        <span class="tag bus">${esc(sel.label)}</span><br>→ <b>${hm(sel.arr)}</b> ${esc(bus.to.name)} 着 <span class="small">（${bus.dur}分）</span><br>
-        <span class="small">${esc(bus.name)}／${esc(bus.note)}</span></span></div>`;
-      h += `<div class="step"><span class="ic">🚶</span><span>${esc(B.name)}まで 徒歩${wb}分 <a class="small" href="${gmapWalk(bus.to, B)}" target="_blank" rel="noopener">地図</a></span></div>`;
-      h += `<details><summary class="small">他の時刻のバスを選ぶ</summary><ul class="alts">` +
-        list.map(x => `<li class="${x === sel ? 'sel' : ''}" onclick="pick('${key}:bus',${x.dep})"><span><b>${hm(x.dep)}</b> → ${hm(x.arr)}</span><span class="small">${esc(x.label)}</span></li>`).join('') +
-        `</ul></details>`;
+      h += rideRows(sel.dep, bus.from.name, sel.arr, bus.to.name,
+        `<span class="tag bus">${esc(sel.label)}</span><span>${esc(bus.note)}</span>`, now, `（${bus.dur}分）`);
+      h += walkRow(`${esc(B.name)}まで ${wb}分`, bus.to, B);
+      h += altRow(list.map(x => ({ dep: x.dep, arr: x.arr, on: x === sel, js: `pick('${key}:bus',${x.dep})` })));
     }
   } else if (mode === 'walk' && o.walk) {
-    h += `<div class="step"><span class="ic">🚶</span><span>徒歩 約${o.walk.min}分（約${Math.round(o.walk.d * 1.2 / 10) * 10}m） <a class="small" href="${gmapWalk(A, B)}" target="_blank" rel="noopener">地図</a></span></div>`;
+    h += walkRow(`${esc(B.name)}まで 約${o.walk.min}分（約${Math.round(o.walk.d * 1.2 / 10) * 10}m）`, A, B);
   } else if (mode === 'taxi' && o.taxi) {
-    h += `<div class="step"><span class="ic">🚕</span><span>タクシーで約${o.taxi.min}分（乗車待ち5分を含めて計算） <a class="small" href="${gmapCar(A, B)}" target="_blank" rel="noopener">地図</a><br>
-      <span class="small">徒歩ほぼゼロ。1日乗車券は使えません。</span></span></div>`;
+    h += `<div class="info">🚕 タクシーで約${o.taxi.min}分（待ち5分を含めて計算）<br><span class="small">歩くのはほぼゼロ。1日乗車券は使えません。</span>
+      ${A.lat != null && B.lat != null ? `<br><a href="${gmapCar(A, B)}" target="_blank" rel="noopener">地図 ›</a>` : ''}</div>`;
   }
   return h + `</div>`;
 }
+function altRow(items) {
+  if (items.length < 2) return '';
+  return `<div class="alts"><span class="lbl">他の便</span>` +
+    items.map(x => `<button class="${x.on ? 'sel' : ''}" onclick="${x.js}">${hm(x.dep)}<small>→${hm(x.arr)}</small></button>`).join('') + `</div>`;
+}
 function countdown(dep, now) {
   const d = dep - now;
-  if (d < 0) return '<span class="small">（発車済）</span>';
-  return `<span class="count">あと${d}分</span>`;
+  if (d < 0) return '<span class="count later">発車済</span>';
+  return `<span class="count ${d > 30 ? 'later' : ''}">${d === 0 ? 'まもなく' : `あと${d}分`}</span>`;
+}
+
+// 画面上部：今やること
+function renderHero(rows, now) {
+  const el = document.getElementById('hero');
+  const r = rows.find(x => !x.done && x.leg);
+  if (!r) { el.innerHTML = `<div class="hero"><div class="lbl">旅程</div><div class="line">おつかれさまでした 🏨</div></div>`; return; }
+  const { o, mode, sel, key } = r.leg;
+  const B = state.places.find(p => p.id === key.split('>')[1]);
+  let h = `<div class="hero">`;
+  const cd = (dep, walk) => {
+    const d = dep - now, go = d - walk;
+    if (d < 0) return `<span class="cd">発車済</span>`;
+    return `<span class="cd ${go <= 5 ? 'soon' : ''}">あと${d}分</span>`;
+  };
+  if (mode === 'tram' && sel) {
+    const lg = sel.legs[0], w = o.tram.sa.w, go = lg.dep - w - now;
+    h += `<div class="lbl">次に乗る市電 → ${esc(B.name)}</div>
+      <div class="main"><span class="t">${hm(lg.dep)}</span>${cd(lg.dep, w)}</div>
+      <div class="line">${esc(STOPS[lg.a])} → ${esc(STOPS[sel.legs.at(-1).b])}（${hm(sel.arr)}着）</div>
+      <div class="sub">${routeTag(lg.tr)} ${platformHint(lg.tr)}${sel.legs.length > 1 ? '・十字街で乗換' : ''}</div>
+      <div class="sub">🚶 電停まで${w}分${go >= 0 ? `・<b>${go === 0 ? '今すぐ' : `${go}分後まで`}</b>に出れば間に合う` : ''}</div>`;
+  } else if (mode === 'bus' && sel) {
+    const w = o.bus.wa, go = sel.dep - w - now;
+    h += `<div class="lbl">次に乗るバス → ${esc(B.name)}</div>
+      <div class="main"><span class="t">${hm(sel.dep)}</span>${cd(sel.dep, w)}</div>
+      <div class="line">${esc(o.bus.bus.from.name)} → ${esc(o.bus.bus.to.name)}（${hm(sel.arr)}着）</div>
+      <div class="sub"><span class="tag bus">${esc(sel.label)}</span></div>
+      <div class="sub">🚶 バス停まで${w}分${go >= 0 ? `・<b>${go === 0 ? '今すぐ' : `${go}分後まで`}</b>に出れば間に合う` : ''}</div>`;
+  } else if (mode === 'walk') {
+    h += `<div class="lbl">次の移動</div><div class="line" style="font-size:20px">🚶 ${esc(B.name)}まで歩いて約${o.walk.min}分</div>`;
+  } else if (mode === 'taxi') {
+    h += `<div class="lbl">次の移動</div><div class="line" style="font-size:20px">🚕 ${esc(B.name)}までタクシーで約${o.taxi.min}分</div>`;
+  } else {
+    h += `<div class="lbl">次の移動 → ${esc(B.name)}</div><div class="line">この後の便がありません。別の手段を選んでください。</div>`;
+  }
+  el.innerHTML = h + `</div>`;
 }
 
 // ---- 操作 ----
@@ -495,9 +590,12 @@ function renderSearch() {
   const list = searchTrams(dayKind(), a, b, t, 12);
   if (!list.length) { el.innerHTML = '<div class="small">この時刻以降の電車はありません</div>'; return; }
   const now = nowMin();
-  el.innerHTML = `<table class="tt"><tr><th>発</th><th>着</th><th>電車</th></tr>` + list.map(x =>
-    `<tr><td><b class="big" style="font-size:18px">${hm(x.dep)}</b><br>${countdown(x.dep, now)}</td><td><b>${hm(x.arr)}</b><br><span class="small">${x.arr - x.dep}分</span></td>
-      <td>${x.legs.map((l, k) => (k ? '<span class="small">十字街で乗換 ' + hm(l.dep) + '発</span><br>' : '') + routeTag(l.tr)).join('<br>')}<br><span class="small">${platformHint(x.legs[0].tr)}</span></td></tr>`).join('') + `</table>`;
+  el.innerHTML = list.map(x => `<div class="res">
+      <div class="tm">${hm(x.dep)}</div>
+      <div>${x.legs.map((l, k) => (k ? `<div class="small">🔁 十字街で乗換 ${hm(l.dep)}発</div>` : '') + routeTag(l.tr)).join('')}
+        <div class="small">${platformHint(x.legs[0].tr)}</div></div>
+      <div style="text-align:right">${countdown(x.dep, now)}<div class="arr">${hm(x.arr)}着・${x.arr - x.dep}分</div></div>
+    </div>`).join('');
 }
 
 // ---- 追加 ----
@@ -533,8 +631,8 @@ function showTab(t) {
 }
 function renderHeader() {
   const d = new Date();
-  document.getElementById('clock').textContent = `${d.getMonth() + 1}/${d.getDate()}(${'日月火水木金土'[d.getDay()]}) ${hm(nowMin())}`;
-  document.getElementById('dayLabel').textContent = state.day === 'auto' ? (dayKind() === 'holiday' ? '→ 土日祝' : '→ 平日') : '';
+  document.getElementById('clock').textContent = `${'日月火水木金土'[d.getDay()]} ${hm(nowMin())}`;
+  document.querySelector('#dayKind option[value=auto]').textContent = `自動（${dayKind() === 'holiday' ? '土日祝' : '平日'}）`;
 }
 function renderAll() { renderHeader(); renderPlan(); if (!document.getElementById('tab-search').classList.contains('hidden')) renderSearch(); }
 
@@ -543,6 +641,9 @@ function init() {
   const st = document.getElementById('startTime');
   st.value = state.startTime || hm(nowMin());
   st.onchange = () => { state.startTime = st.value; state.anchor = null; state.pick = {}; save(); renderPlan(); };
+  document.getElementById('editBtn').onclick = e => {
+    editing = !editing; e.currentTarget.textContent = editing ? '✓ 完了' : '✏️ 編集'; renderPlan();
+  };
   document.getElementById('nowBtn').onclick = () => { st.value = hm(nowMin()); st.onchange(); };
   const dk = document.getElementById('dayKind');
   dk.value = state.day; dk.onchange = () => { state.day = dk.value; save(); renderAll(); };

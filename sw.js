@@ -1,5 +1,5 @@
 // 電波が弱い場所でも開けるように、ページと時刻データをキャッシュする
-const CACHE = 'hakodate-v1';
+const CACHE = 'hakodate-v2';
 const FILES = ['./', 'index.html', 'data.js', 'manifest.json'];
 self.addEventListener('install', e => e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES)).then(() => self.skipWaiting())));
 self.addEventListener('activate', e => e.waitUntil(self.clients.claim()));
