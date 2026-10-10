@@ -116,6 +116,16 @@
   .preset { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--line); }
   .preset:last-child { border-bottom: 0; }
   h3 { margin: 0 0 6px; font-size: 16px; }
+  .actions { display: flex; gap: 8px; margin-bottom: 12px; }
+  .actions .btn { flex: 1; justify-content: center; padding: 10px 8px; font-size: 15px; }
+  .hit { padding: 10px 0; border-bottom: 1px solid var(--line); }
+  .hit:last-child { border-bottom: 0; }
+  .hit .nm { font-weight: 700; }
+  .hit .row { display: flex; gap: 8px; align-items: center; margin-top: 6px; flex-wrap: wrap; }
+  .target { display: flex; justify-content: space-between; align-items: center; width: 100%; text-align: left; border: 1px solid var(--line);
+            background: #fff; border-radius: 12px; padding: 10px 12px; margin-bottom: 6px; font-size: 16px; font-weight: 700; color: var(--ink); }
+  .target.next { border-color: var(--main); background: var(--main-soft); }
+  .linkrow { display: flex; gap: 12px; margin-top: 6px; font-size: 13px; }
 </style>
 </head>
 <body>
@@ -133,6 +143,26 @@
   <!-- 旅程 -->
   <section id="tab-plan">
     <div id="hero"></div>
+    <div class="actions">
+      <button class="btn fill" id="hereBtn">📍 現在地から行く</button>
+      <button class="btn" id="findBtn">🔎 目的地を検索</button>
+    </div>
+    <div id="herePanel" class="card hidden">
+      <h3>現在地からどこへ行きますか？</h3>
+      <div id="hereTargets"></div>
+      <div id="hereMsg" class="small" style="margin-top:6px"></div>
+    </div>
+    <div id="findPanel" class="card hidden">
+      <form id="findForm" class="two">
+        <input id="findQ" type="search" placeholder="店名・観光地・住所（例：ラッキーピエロ、元町14-4）" enterkeyhint="search">
+        <button class="btn fill" style="flex:none">検索</button>
+      </form>
+      <div class="two" style="align-items:center;margin-top:8px">
+        <span class="small" style="flex:none">追加する位置</span><select id="findPos"></select>
+      </div>
+      <div class="small" style="margin-top:6px">⚠️ 営業時間・定休日・移転は「Googleマップで確認」で最新情報を見てから追加してください。</div>
+      <div id="findRes"></div>
+    </div>
     <div class="card startbar">
       <span class="small grow">最初の場所を出る時刻</span>
       <input type="time" id="startTime">
@@ -297,6 +327,7 @@ const walkMin = d => Math.max(1, Math.round(d * 1.2 / 80));
 const stopPos = i => ({ lat: T.coords[i][0], lng: T.coords[i][1] });
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const gmapWalk = (a, b) => `https://www.google.com/maps/dir/?api=1&origin=${a.lat},${a.lng}&destination=${b.lat},${b.lng}&travelmode=walking`;
+const gmapPlace = p => `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(p.temp ? `${p.lat},${p.lng}` : p.name + ' 函館')}`;
 const gmapCar = (a, b) => `https://www.google.com/maps/dir/?api=1&origin=${a.lat},${a.lng}&destination=${b.lat},${b.lng}&travelmode=driving`;
 
 // ---- ダイヤ種別 ----
@@ -338,8 +369,9 @@ function routeTag(tr) {
   const num = tr.route === '②' ? '2' : tr.route === '⑤' ? '5' : '';
   return `<span class="tag ${c}">${num ? num + '系統 ' : ''}${esc(tr.to)}行</span>${tr.low ? ' <span class="tag low">低床</span>' : ''}`;
 }
-function platformHint(tr) {
-  return tr.dir === 'up' ? '湯の川方面のりば' : '函館駅前方面のりば';
+function platformHint(tr, a) {
+  if (tr.dir === 'up') return '湯の川方面のりば';
+  return a != null && a >= SI['函館駅前'] ? '谷地頭・どつく前方面のりば' : '函館駅前方面のりば';
 }
 function nearestStops(p, k = 2) {
   return STOPS.map((s, i) => ({ i, d: distM(p, stopPos(i)) })).sort((x, y) => x.d - y.d).slice(0, k);
@@ -446,10 +478,11 @@ function renderPlan() {
       if (!last && (i !== rows.findIndex(x => !x.done) || r.arrive != null) && +p.stay) times += `<span class="chip">滞在 ${+p.stay}分</span>`;
       if (!last && r.leave != null) times += `<span class="chip">発 <b>${hm(r.leave)}</b></span>`;
     }
-    h += `<div class="node ${r.done ? 'done' : ''}"><div class="dot">${last ? '🏨' : i + 1}</div>
+    h += `<div class="node ${r.done ? 'done' : ''}"><div class="dot">${last ? '🏨' : p.temp ? '📍' : i + 1}</div>
       <div class="card place">
         <h2>${esc(p.name)}</h2>
         ${p.note ? `<div class="note">${esc(p.note)}</div>` : ''}
+        ${!p.temp && !r.done ? `<div class="linkrow"><a href="${gmapPlace(p)}" target="_blank" rel="noopener">Googleマップで確認 ›</a></div>` : ''}
         <div class="times">${times}</div>
         <div class="placefoot">
           <span class="small">🚏 ${esc(STOPS[sp.i])}電停から徒歩${sp.w}分</span>
@@ -504,7 +537,7 @@ function renderLeg(r, now) {
       sel.legs.forEach((lg, k) => {
         if (k > 0) h += `<div class="xfer">🔁 十字街で乗り換え</div>`;
         h += rideRows(lg.dep, STOPS[lg.a], lg.arr, STOPS[lg.b],
-          `${routeTag(lg.tr)}<span>${platformHint(lg.tr)}</span>`, k === 0 ? now : null, `（${lg.n}駅・${lg.arr - lg.dep}分）`);
+          `${routeTag(lg.tr)}<span>${platformHint(lg.tr, lg.a)}</span>`, k === 0 ? now : null, `（${lg.n}駅・${lg.arr - lg.dep}分）`);
       });
       h += walkRow(`${esc(B.name)}まで ${sb.w}分`, stopPos(sb.i), B);
       h += altRow(list.map(x => ({ dep: x.dep, arr: x.arr, on: x === sel, js: `pick('${key}',${x.dep})` })));
@@ -556,7 +589,7 @@ function renderHero(rows, now) {
     h += `<div class="lbl">次に乗る市電 → ${esc(B.name)}</div>
       <div class="main"><span class="t">${hm(lg.dep)}</span>${cd(lg.dep, w)}</div>
       <div class="line">${esc(STOPS[lg.a])} → ${esc(STOPS[sel.legs.at(-1).b])}（${hm(sel.arr)}着）</div>
-      <div class="sub">${routeTag(lg.tr)} ${platformHint(lg.tr)}${sel.legs.length > 1 ? '・十字街で乗換' : ''}</div>
+      <div class="sub">${routeTag(lg.tr)} ${platformHint(lg.tr, lg.a)}${sel.legs.length > 1 ? '・十字街で乗換' : ''}</div>
       <div class="sub">🚶 電停まで${w}分${go >= 0 ? `・<b>${go === 0 ? '今すぐ' : `${go}分後まで`}</b>に出れば間に合う` : ''}</div>`;
   } else if (mode === 'bus' && sel) {
     const w = o.bus.wa, go = sel.dep - w - now;
@@ -632,7 +665,7 @@ function renderSearch() {
   el.innerHTML = list.map(x => `<div class="res">
       <div class="tm">${hm(x.dep)}</div>
       <div>${x.legs.map((l, k) => (k ? `<div class="small">🔁 十字街で乗換 ${hm(l.dep)}発</div>` : '') + routeTag(l.tr)).join('')}
-        <div class="small">${platformHint(x.legs[0].tr)}</div></div>
+        <div class="small">${platformHint(x.legs[0].tr, x.legs[0].a)}</div></div>
       <div style="text-align:right">${countdown(x.dep, now)}<div class="arr">${hm(x.arr)}着・${x.arr - x.dep}分</div></div>
     </div>`).join('');
 }
@@ -640,9 +673,7 @@ function renderSearch() {
 // ---- 追加 ----
 function renderAdd() {
   const P = state.places;
-  const sel = document.getElementById('insertPos');
-  sel.innerHTML = P.map((p, i) => `<option value="${i}">「${esc(p.name)}」の前</option>`).join('') + `<option value="${P.length}">最後</option>`;
-  sel.value = String(Math.max(0, P.length - 1));
+  fillPosSelect(document.getElementById('insertPos'));
   document.getElementById('presets').innerHTML = PRESETS.map((p, k) => {
     const n = nearestStops(p, 1)[0];
     return `<div class="preset"><span>${esc(p.name)}<br><span class="small">${esc(STOPS[n.i])}電停 徒歩${walkMin(n.d)}分</span></span>
@@ -652,12 +683,105 @@ function renderAdd() {
 function insertPlace(p) {
   const pos = +document.getElementById('insertPos').value;
   p.id = 'p' + Date.now().toString(36);
-  state.places.splice(pos, 0, p); state.anchor = null; save(); renderAll(); showTab('plan');
+  shiftAnchorForInsert(pos);
+  state.places.splice(pos, 0, p); save(); renderAll(); showTab('plan');
 }
 function addPreset(k) { const p = PRESETS[k]; insertPlace({ name: p.name, lat: p.lat, lng: p.lng, stay: 30, note: '' }); }
 function parseLoc(v) {
   const m = /(-?\d{1,2}\.\d+)\s*,\s*(-?\d{2,3}\.\d+)/.exec(v || '');
   return m ? { lat: +m[1], lng: +m[2] } : null;
+}
+
+
+// ---- 目的地検索（OpenStreetMap / 国土地理院） ----
+const VIEWBOX = '140.55,41.95,141.0,41.68';
+function inArea(lat, lng) { return lat > 41.68 && lat < 41.95 && lng > 140.55 && lng < 141.0; }
+async function findPlaces(q) {
+  const nomi = fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&accept-language=ja&countrycodes=jp&viewbox=${VIEWBOX}&bounded=1&limit=8&q=${encodeURIComponent(q)}`)
+    .then(r => r.json()).then(a => a.map(e => ({
+      name: e.name || e.display_name.split(',')[0],
+      addr: e.display_name.split(',').map(x => x.trim()).filter(x => !/^(日本|北海道|北海道地方|渡島総合振興局|\d{3}-\d{4})$/.test(x)).slice(1, 4).join(' '),
+      lat: +e.lat, lng: +e.lon }))).catch(() => []);
+  const gq = /函館/.test(q) ? q : '函館市' + q;
+  const gsi = /\d|町|丁目/.test(q) ? fetch(`https://msearch.gsi.go.jp/address-search/AddressSearch?q=${encodeURIComponent(gq)}`)
+    .then(r => r.json()).then(a => a.map(e => ({ name: e.properties.title.replace(/^北海道/, ''), addr: '住所から検索', lat: e.geometry.coordinates[1], lng: e.geometry.coordinates[0] }))
+      .filter(e => inArea(e.lat, e.lng)).slice(0, 4)).catch(() => []) : Promise.resolve([]);
+  const [a, b] = await Promise.all([nomi, gsi]);
+  return [...a, ...b];
+}
+let findHits = [];
+async function runFind(e) {
+  e && e.preventDefault();
+  const q = document.getElementById('findQ').value.trim();
+  const el = document.getElementById('findRes');
+  if (!q) return;
+  el.innerHTML = '<div class="small" style="padding:10px 0">検索中…</div>';
+  findHits = await findPlaces(q);
+  if (!findHits.length) { el.innerHTML = '<div class="small" style="padding:10px 0">見つかりませんでした。別の言い方や住所で試してください。</div>'; return; }
+  el.innerHTML = findHits.map((h, k) => {
+    const n = nearestStops(h, 1)[0];
+    return `<div class="hit"><div class="nm">${esc(h.name)}</div><div class="small">${esc(h.addr)}</div>
+      <div class="small">🚏 ${esc(STOPS[n.i])}電停から徒歩${walkMin(n.d)}分</div>
+      <div class="row"><button class="btn sm fill" onclick="addHit(${k})">＋ 旅程に追加</button>
+        <a class="small" href="${gmapPlace(h)}" target="_blank" rel="noopener">Googleマップで確認 ›</a></div></div>`;
+  }).join('');
+}
+function addHit(k) {
+  const h = findHits[k];
+  const pos = +document.getElementById('findPos').value;
+  const p = { id: 'p' + Date.now().toString(36), name: h.name, lat: h.lat, lng: h.lng, stay: 30, note: h.addr && h.addr !== '住所から検索' ? h.addr : '' };
+  shiftAnchorForInsert(pos);
+  state.places.splice(pos, 0, p); save();
+  document.getElementById('findPanel').classList.add('hidden');
+  document.getElementById('findRes').innerHTML = ''; document.getElementById('findQ').value = '';
+  renderAll();
+}
+// 出発済みの位置より前に入れるときは出発点の番号をずらす
+function shiftAnchorForInsert(pos) {
+  if (state.anchor && pos <= state.anchor.idx) state.anchor.idx++;
+}
+function fillPosSelect(sel) {
+  const P = state.places;
+  const first = state.anchor ? state.anchor.idx + 1 : 0;
+  let opts = '';
+  for (let i = first; i < P.length; i++) opts += `<option value="${i}">「${esc(P[i].name)}」の前</option>`;
+  opts += `<option value="${P.length}">最後</option>`;
+  sel.innerHTML = opts;
+  sel.value = String(Math.max(first, P.length - 1));
+}
+
+// ---- 現在地から次の目的地へ ----
+function remainingTargets() {
+  const P = state.places, a = state.anchor;
+  const from = a && a.idx < P.length ? (a.arrive != null ? a.idx : a.idx + 1) : 0;
+  return P.map((p, i) => ({ p, i })).filter(x => x.i >= from && !x.p.temp);
+}
+function openHere() {
+  const panel = document.getElementById('herePanel');
+  document.getElementById('findPanel').classList.add('hidden');
+  if (!panel.classList.toggle('hidden')) {
+    const t = remainingTargets();
+    document.getElementById('hereTargets').innerHTML = t.length ? t.map((x, k) =>
+      `<button class="target ${k === 0 ? 'next' : ''}" onclick="goFromHere('${x.p.id}')"><span>${esc(x.p.name)}</span><span>›</span></button>`).join('')
+      : '<div class="small">行き先がありません。「目的地を検索」で追加してください。</div>';
+    document.getElementById('hereMsg').textContent = '';
+  }
+}
+function goFromHere(targetId) {
+  const msg = document.getElementById('hereMsg');
+  geo(pos => {
+    if (!inArea(pos.lat, pos.lng)) { msg.textContent = '現在地が函館市内ではないようです'; return; }
+    // 前回の「現在地」と、そこより前（行った場所）は済みとして残す
+    state.places = state.places.filter(p => !p.temp);
+    const ti = state.places.findIndex(p => p.id === targetId);
+    const here = { id: 'here', name: `現在地（${hm(nowMin())}）`, lat: pos.lat, lng: pos.lng, stay: 0, temp: true };
+    state.places.splice(ti, 0, here);
+    state.anchor = { idx: ti, leave: nowMin() };
+    state.pick = {}; Object.keys(state.mode).forEach(k => k.startsWith('here>') && delete state.mode[k]);
+    save();
+    document.getElementById('herePanel').classList.add('hidden');
+    renderAll(); window.scrollTo(0, 0);
+  }, m => msg.textContent = m);
 }
 
 // ---- 画面切替・初期化 ----
@@ -680,6 +804,13 @@ function init() {
   const st = document.getElementById('startTime');
   st.value = state.startTime || hm(nowMin());
   st.onchange = () => { state.startTime = st.value; state.anchor = null; state.pick = {}; save(); renderPlan(); };
+  document.getElementById('hereBtn').onclick = openHere;
+  document.getElementById('findBtn').onclick = () => {
+    document.getElementById('herePanel').classList.add('hidden');
+    const fp = document.getElementById('findPanel');
+    if (!fp.classList.toggle('hidden')) { fillPosSelect(document.getElementById('findPos')); document.getElementById('findQ').focus(); }
+  };
+  document.getElementById('findForm').onsubmit = runFind;
   document.getElementById('editBtn').onclick = e => {
     editing = !editing; e.currentTarget.textContent = editing ? '✓ 完了' : '✏️ 編集'; renderPlan();
   };
