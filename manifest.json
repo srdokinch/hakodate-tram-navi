@@ -1,0 +1,9 @@
+{
+  "name": "函館 市電ナビ",
+  "short_name": "市電ナビ",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#f4f6f9",
+  "theme_color": "#0f4c81",
+  "lang": "ja"
+}

@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0f4c81">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>函館 市電ナビ</title>
+<link rel="manifest" href="manifest.json">
+<style>
+  :root {
+    --bg: #f4f6f9; --card: #fff; --ink: #1d2733; --sub: #66727f; --line: #e2e7ee;
+    --main: #0f4c81; --r2: #2e7d32; --r5: #c62828; --bus: #e08a00; --walk: #6b7a8a; --warn: #b26a00;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Noto Sans JP", sans-serif;
+         background: var(--bg); color: var(--ink); font-size: 16px; line-height: 1.5;
+         padding-bottom: calc(72px + env(safe-area-inset-bottom)); }
+  header { position: sticky; top: 0; z-index: 10; background: var(--main); color: #fff;
+           padding: calc(8px + env(safe-area-inset-top)) 14px 8px; }
+  header h1 { margin: 0; font-size: 18px; }
+  header .meta { font-size: 13px; opacity: .9; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  header select { font-size: 13px; border-radius: 6px; border: 0; padding: 2px 4px; }
+  main { padding: 12px; max-width: 640px; margin: 0 auto; }
+  nav { position: fixed; bottom: 0; left: 0; right: 0; display: flex; background: #fff; border-top: 1px solid var(--line);
+        padding-bottom: env(safe-area-inset-bottom); z-index: 10; }
+  nav button { flex: 1; border: 0; background: none; padding: 10px 0 8px; font-size: 12px; color: var(--sub); }
+  nav button .ic { display: block; font-size: 22px; line-height: 1.1; }
+  nav button.on { color: var(--main); font-weight: 700; }
+  .card { background: var(--card); border-radius: 14px; padding: 12px 14px; margin-bottom: 10px;
+          box-shadow: 0 1px 2px rgba(0,0,0,.06); }
+  .place { border-left: 6px solid var(--main); }
+  .place.done { opacity: .45; }
+  .place h2 { margin: 0; font-size: 18px; }
+  .place .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; font-size: 14px; color: var(--sub); }
+  .place .time { font-size: 15px; color: var(--ink); font-weight: 600; }
+  .note { font-size: 13px; color: var(--warn); }
+  .small { font-size: 13px; color: var(--sub); }
+  .btn { display: inline-block; border: 1px solid var(--main); color: var(--main); background: #fff; border-radius: 999px;
+         padding: 6px 12px; font-size: 14px; text-decoration: none; cursor: pointer; }
+  .btn.fill { background: var(--main); color: #fff; }
+  .btn.sm { padding: 3px 9px; font-size: 13px; }
+  .btn:disabled { opacity: .4; }
+  .leg { margin: -4px 0 6px 18px; padding: 6px 0 6px 16px; border-left: 3px dashed #b9c4d0; }
+  .step { display: flex; gap: 8px; align-items: flex-start; margin: 4px 0; font-size: 15px; }
+  .step .ic { width: 26px; text-align: center; flex: none; }
+  .tag { display: inline-block; border-radius: 6px; padding: 0 6px; font-size: 12px; font-weight: 700; color: #fff; vertical-align: 1px; }
+  .tag.r2 { background: var(--r2); } .tag.r5 { background: var(--r5); } .tag.r25 { background: var(--main); }
+  .tag.bus { background: var(--bus); } .tag.low { background: #fff; color: var(--main); border: 1px solid var(--main); }
+  .big { font-size: 20px; font-weight: 800; }
+  .count { font-size: 13px; color: var(--r5); font-weight: 700; }
+  .modes { display: flex; gap: 6px; flex-wrap: wrap; margin: 4px 0; }
+  .modes button { border: 1px solid var(--line); background: #fff; border-radius: 8px; padding: 4px 8px; font-size: 13px; }
+  .modes button.on { border-color: var(--main); background: #e8f0f8; color: var(--main); font-weight: 700; }
+  .alts { margin: 6px 0 0; padding: 0; list-style: none; }
+  .alts li { display: flex; justify-content: space-between; align-items: center; padding: 7px 8px; border-radius: 8px;
+             border: 1px solid var(--line); margin-bottom: 5px; font-size: 15px; background: #fff; }
+  .alts li.sel { border-color: var(--main); background: #e8f0f8; }
+  .alts li.past { opacity: .4; }
+  table.tt { width: 100%; border-collapse: collapse; font-size: 15px; }
+  table.tt td, table.tt th { padding: 8px 4px; border-bottom: 1px solid var(--line); text-align: left; }
+  table.tt th { font-size: 12px; color: var(--sub); font-weight: 600; }
+  label.f { display: block; font-size: 13px; color: var(--sub); margin: 8px 0 2px; }
+  input, select, textarea { font-size: 16px; padding: 8px; border: 1px solid #c9d2dc; border-radius: 8px; width: 100%; background: #fff; }
+  .two { display: flex; gap: 8px; } .two > * { flex: 1; }
+  .hidden { display: none; }
+  .warnbox { background: #fff5e5; border: 1px solid #f0c27b; border-radius: 10px; padding: 8px 10px; font-size: 13px; margin-bottom: 10px; }
+  .preset { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--line); }
+  .preset:last-child { border-bottom: 0; }
+  .ctrl { display: flex; gap: 4px; }
+  .ctrl button { border: 1px solid var(--line); background: #fff; border-radius: 6px; font-size: 13px; padding: 2px 7px; }
+  a { color: var(--main); }
+</style>
+</head>
+<body>
+<header>
+  <h1>🚃 函館 市電ナビ</h1>
+  <div class="meta">
+    <span id="clock"></span>
+    <select id="dayKind" aria-label="ダイヤ">
+      <option value="auto">ダイヤ自動</option>
+      <option value="holiday">土日祝ダイヤ</option>
+      <option value="weekday">平日ダイヤ</option>
+    </select>
+    <span id="dayLabel"></span>
+  </div>
+</header>
+
+<main>
+  <!-- 旅程 -->
+  <section id="tab-plan">
+    <div class="card">
+      <div class="two" style="align-items:end">
+        <div>
+          <label class="f">出発時刻（1件目の場所を出る時刻）</label>
+          <input type="time" id="startTime">
+        </div>
+        <div style="flex:none"><button class="btn fill" id="nowBtn">今にする</button></div>
+      </div>
+      <div class="small" style="margin-top:6px">徒歩が少ない順に経路を選びます。場所カードの「ここを今出る」を押すと、そこから今の時刻で再計算します。</div>
+    </div>
+    <div id="plan"></div>
+    <div style="text-align:center;margin:12px 0"><button class="btn" onclick="showTab('add')">＋ 行き先を追加</button></div>
+  </section>
+
+  <!-- 時刻表検索 -->
+  <section id="tab-search" class="hidden">
+    <div class="card">
+      <div class="two">
+        <div><label class="f">乗る電停</label><select id="sFrom"></select></div>
+        <div style="flex:none;align-self:end"><button class="btn sm" id="swapBtn">⇄</button></div>
+        <div><label class="f">降りる電停</label><select id="sTo"></select></div>
+      </div>
+      <div class="two" style="align-items:end">
+        <div><label class="f">この時刻以降</label><input type="time" id="sTime"></div>
+        <div style="flex:none"><button class="btn" id="sNow">今</button></div>
+        <div style="flex:none"><button class="btn" id="sGeo">📍最寄り</button></div>
+      </div>
+      <div id="sGeoMsg" class="small"></div>
+    </div>
+    <div class="card"><div id="sResult"></div></div>
+  </section>
+
+  <!-- 追加 -->
+  <section id="tab-add" class="hidden">
+    <div class="card">
+      <label class="f">追加する位置</label>
+      <select id="insertPos"></select>
+    </div>
+    <div class="card">
+      <h3 style="margin:0 0 4px;font-size:16px">よく行く場所から選ぶ</h3>
+      <div id="presets"></div>
+    </div>
+    <div class="card">
+      <h3 style="margin:0 0 4px;font-size:16px">自分で入力</h3>
+      <label class="f">名前</label><input id="cName" placeholder="例：ラッキーピエロ ベイエリア本店">
+      <label class="f">位置（Googleマップの共有URL・緯度経度、または現在地）</label>
+      <div class="two"><input id="cLoc" placeholder="41.77, 140.72 または https://maps.google.com/...@41.77,140.72"><button class="btn" style="flex:none" id="cGeo">📍現在地</button></div>
+      <div class="small">位置が分からない場合は空欄にして、下で最寄り電停と徒歩分数を指定してください。</div>
+      <div class="two">
+        <div><label class="f">最寄り電停</label><select id="cStop"><option value="">位置から自動</option></select></div>
+        <div><label class="f">電停から徒歩(分)</label><input id="cWalk" type="number" min="0" max="60" placeholder="自動"></div>
+      </div>
+      <label class="f">滞在時間(分)</label><input id="cStay" type="number" min="0" value="30">
+      <label class="f">メモ</label><input id="cNote" placeholder="営業時間など">
+      <div style="margin-top:10px"><button class="btn fill" id="cAdd">追加する</button> <span id="cMsg" class="small"></span></div>
+    </div>
+    <div class="card small">
+      <button class="btn sm" id="resetBtn">旅程を最初の状態に戻す</button>
+    </div>
+  </section>
+
+  <!-- 情報 -->
+  <section id="tab-info" class="hidden">
+    <div class="card">
+      <h3 style="margin-top:0;font-size:16px">リンク</h3>
+      <p><a href="https://icas.hakodatecitytram.com/location/index.htm" target="_blank" rel="noopener">🚃 市電の現在位置（公式・リアルタイム）</a></p>
+      <p><a href="https://www.city.hakodate.hokkaido.jp/tram/" target="_blank" rel="noopener">函館市電 公式サイト（運行情報）</a></p>
+      <p><a href="https://map.hakobus.co.jp/timetable/?busStopCode=17012" target="_blank" rel="noopener">🚌 函館バス「湯の川温泉」時刻表（公式）</a></p>
+    </div>
+    <div class="card small">
+      <h3 style="margin-top:0;font-size:16px;color:var(--ink)">メモ</h3>
+      <ul style="padding-left:18px;margin:0">
+        <li>市電の系統：<span class="tag r2">2</span> 湯の川⇔谷地頭（十字街・宝来町経由）、<span class="tag r5">5</span> 湯の川⇔函館どつく前（十字街・末広町経由）。湯の川〜十字街はどちらでも乗れます。</li>
+        <li><span class="tag low">低床</span> は段差の少ない低床電車の予定便（検査等で一般車になることあり）。</li>
+        <li>市電1日乗車券はバスでは使えません。バス代は別にかかります。</li>
+        <li>時刻は時刻表どおりの予定です。道路状況で数分遅れることがあります。上の「市電の現在位置」で確認してください。</li>
+        <li>市電データ：函館市企業局交通部 市電時刻表（2026年8月15日改正）。終点（谷地頭・函館どつく前・湯の川）の到着は推定です。</li>
+        <li>バスデータ：函館バス 5系統（2026年10月1日改正・土日祝）。平日ダイヤは未確認です。</li>
+        <li>旅程はこの端末のブラウザに保存されます。</li>
+      </ul>
+    </div>
+  </section>
+</main>
+
+<nav>
+  <button data-tab="plan" class="on"><span class="ic">🗺️</span>旅程</button>
+  <button data-tab="search"><span class="ic">🔎</span>時刻表検索</button>
+  <button data-tab="add"><span class="ic">➕</span>行き先追加</button>
+  <button data-tab="info"><span class="ic">ℹ️</span>情報</button>
+</nav>
+
+<script src="data.js"></script>
+<script>
+'use strict';
+const T = window.TRAM;
+const STOPS = T.stops;
+const SI = Object.fromEntries(STOPS.map((s, i) => [s, i]));
+const JUJI = SI['十字街'];
+
+// ---- バス（市電に無い区間の補助） ----
+// 函館バス5系統 五稜郭タワー前→湯の川温泉 (2026/10/1改正 土日祝, 所要12分, 公式/NAVITIME で確認)
+const BUSES = [{
+  name: '函館バス 5系統（五稜郭タワー・トラピスチヌ シャトル）',
+  from: { name: '五稜郭タワー前', lat: 41.7943, lng: 140.7536 },
+  to: { name: '湯の川温泉（バス停）', lat: 41.774796, lng: 140.786934 },
+  holiday: [[9*60+20,'5A 函館牛乳あいす118行'],[9*60+30,'5 トラピスチヌ前行'],[10*60+30,'5 トラピスチヌ前行'],[11*60+30,'5 トラピスチヌ前行'],
+            [12*60+30,'5 トラピスチヌ前行'],[13*60+10,'5A 函館牛乳あいす118行'],[13*60+30,'5 トラピスチヌ前行'],[14*60+30,'5 トラピスチヌ前行']],
+  weekday: null, dur: 12,
+  note: '後ろ乗り・後払い・交通系IC可。市電1日乗車券は使えません。',
+}];
+
+// ---- 場所 ----
+const DEFAULT_PLACES = [
+  { id: 'jiyu', name: 'はこだて自由市場', lat: 41.77332, lng: 140.73449, stay: 30, note: '' },
+  { id: 'crepe', name: '街角クレープ', lat: 41.765068, lng: 140.718323, stay: 30, note: '末広町12-8 2階／11:00〜16:00（売切次第終了）／木・金定休' },
+  { id: 'goryo', name: '五稜郭（五稜郭タワー）', lat: 41.79459, lng: 140.75396, stay: 90, note: '' },
+  { id: 'yunohama', name: '湯の浜ホテル', lat: 41.77440, lng: 140.78570, stay: 0, note: '湯川町1-2-30' },
+];
+const PRESETS = [ // 座標は OpenStreetMap
+  { name: '函館駅', lat: 41.7738, lng: 140.72638 },
+  { name: '函館朝市', lat: 41.77224, lng: 140.72482 },
+  { name: '金森赤レンガ倉庫', lat: 41.76618, lng: 140.71645 },
+  { name: '八幡坂', lat: 41.76379, lng: 140.71177 },
+  { name: '旧函館区公会堂', lat: 41.76504, lng: 140.70892 },
+  { name: 'ラッキーピエロ ベイエリア本店', lat: 41.76579, lng: 140.71489 },
+  { name: 'ハセガワストア ベイエリア店', lat: 41.76565, lng: 140.71502 },
+  { name: '谷地頭温泉', lat: 41.7517, lng: 140.71422 },
+  { name: '五稜郭タワー', lat: 41.79459, lng: 140.75396 },
+  { name: 'シエスタハコダテ（五稜郭）', lat: 41.78966, lng: 140.75201 },
+  { name: '函館市熱帯植物園', lat: 41.77415, lng: 140.78932 },
+];
+
+const KEY = 'hakodate-trip-v1';
+let state = load();
+function load() {
+  try {
+    const s = JSON.parse(localStorage.getItem(KEY));
+    if (s && Array.isArray(s.places)) return Object.assign({ pick: {}, mode: {}, anchor: null, day: 'auto' }, s);
+  } catch (e) {}
+  return { places: DEFAULT_PLACES.map(p => ({ ...p })), pick: {}, mode: {}, anchor: null, day: 'auto' };
+}
+function save() { localStorage.setItem(KEY, JSON.stringify(state)); }
+
+// ---- 時刻・距離ユーティリティ ----
+const pad = n => String(n).padStart(2, '0');
+const hm = m => `${pad(Math.floor(m / 60) % 24)}:${pad(m % 60)}`;
+const nowMin = () => { const d = new Date(); return d.getHours() * 60 + d.getMinutes(); };
+const parseHM = v => { const m = /^(\d{1,2}):(\d{2})$/.exec(v || ''); return m ? +m[1] * 60 + +m[2] : null; };
+function distM(a, b) {
+  const R = 6371000, r = Math.PI / 180;
+  const dl = (b.lat - a.lat) * r, dg = (b.lng - a.lng) * r;
+  const x = Math.sin(dl / 2) ** 2 + Math.cos(a.lat * r) * Math.cos(b.lat * r) * Math.sin(dg / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(x));
+}
+// 道のりは直線の約1.2倍、分速80m（不動産表示と同じ基準）
+const walkMin = d => Math.max(1, Math.round(d * 1.2 / 80));
+const stopPos = i => ({ lat: T.coords[i][0], lng: T.coords[i][1] });
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const gmapWalk = (a, b) => `https://www.google.com/maps/dir/?api=1&origin=${a.lat},${a.lng}&destination=${b.lat},${b.lng}&travelmode=walking`;
+const gmapCar = (a, b) => `https://www.google.com/maps/dir/?api=1&origin=${a.lat},${a.lng}&destination=${b.lat},${b.lng}&travelmode=driving`;
+
+// ---- ダイヤ種別 ----
+const HOLIDAYS = ['2026-10-12', '2026-11-03', '2026-11-23', '2027-01-01', '2027-01-11'];
+function dayKind() {
+  if (state.day !== 'auto') return state.day;
+  const d = new Date();
+  const ymd = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  return (d.getDay() === 0 || d.getDay() === 6 || HOLIDAYS.includes(ymd)) ? 'holiday' : 'weekday';
+}
+
+// ---- 市電の検索 ----
+function directTrips(kind, a, b, t) {
+  const out = [];
+  for (const tr of T.trips[kind]) {
+    const st = tr.stops;
+    let ia = -1;
+    for (let k = 0; k < st.length; k++) if (st[k][0] === a) { ia = k; break; }
+    if (ia < 0 || st[ia][1] < t) continue;
+    for (let k = ia + 1; k < st.length; k++) {
+      if (st[k][0] === b) { out.push({ dep: st[ia][1], arr: st[k][1], legs: [{ tr, a, b, dep: st[ia][1], arr: st[k][1], n: k - ia }] }); break; }
+    }
+  }
+  return out.sort((x, y) => x.dep - y.dep);
+}
+// 直通が無いとき（谷地頭側⇔どつく側）は十字街で乗り換え
+function searchTrams(kind, a, b, t, n = 6) {
+  let res = directTrips(kind, a, b, t);
+  if (!res.length && a !== JUJI && b !== JUJI) {
+    for (const f of directTrips(kind, a, JUJI, t).slice(0, n)) {
+      const s = directTrips(kind, JUJI, b, f.arr + 1)[0];
+      if (s) res.push({ dep: f.dep, arr: s.arr, legs: [...f.legs, ...s.legs] });
+    }
+  }
+  return res.slice(0, n);
+}
+function routeTag(tr) {
+  const c = tr.route === '②' ? 'r2' : tr.route === '⑤' ? 'r5' : 'r25';
+  const num = tr.route === '②' ? '2' : tr.route === '⑤' ? '5' : '';
+  return `<span class="tag ${c}">${num ? num + '系統 ' : ''}${esc(tr.to)}行</span>${tr.low ? ' <span class="tag low">低床</span>' : ''}`;
+}
+function platformHint(tr) {
+  return tr.dir === 'up' ? '湯の川方面のりば' : '函館駅前・十字街方面のりば';
+}
+function nearestStops(p, k = 2) {
+  return STOPS.map((s, i) => ({ i, d: distM(p, stopPos(i)) })).sort((x, y) => x.d - y.d).slice(0, k);
+}
+function placeStop(p) {
+  if (p.stop != null && p.stop !== '' && SI[p.stop] != null) {
+    const i = SI[p.stop];
+    const w = p.walk != null && p.walk !== '' ? +p.walk : (p.lat != null ? walkMin(distM(p, stopPos(i))) : 3);
+    return { i, w };
+  }
+  const n = nearestStops(p, 1)[0];
+  return { i: n.i, w: p.walk != null && p.walk !== '' ? +p.walk : walkMin(n.d) };
+}
+
+// ---- 区間の候補を作る ----
+function legOptions(A, B, leave, kind) {
+  const opts = {};
+  const sa = placeStop(A), sb = placeStop(B);
+  // 市電
+  if (sa.i !== sb.i) {
+    const list = searchTrams(kind, sa.i, sb.i, leave + sa.w, 8);
+    opts.tram = { sa, sb, list, walk: sa.w + sb.w };
+  }
+  // バス
+  if (A.lat != null && B.lat != null) {
+    for (const bus of BUSES) {
+      const times = bus[kind];
+      const da = distM(A, bus.from), db = distM(B, bus.to);
+      if (!times || da > 500 || db > 500) continue;
+      const wa = walkMin(da), wb = walkMin(db);
+      const list = times.filter(x => x[0] >= leave + wa).map(x => ({ dep: x[0], arr: x[0] + bus.dur, label: x[1] }));
+      opts.bus = { bus, wa, wb, list, walk: wa + wb };
+    }
+  }
+  // 徒歩・タクシー
+  if (A.lat != null && B.lat != null) {
+    const d = distM(A, B);
+    opts.walk = { min: walkMin(d), d };
+    opts.taxi = { min: Math.max(5, Math.round(d * 1.3 / 1000 / 25 * 60) + 3) };
+  }
+  return opts;
+}
+function autoMode(o) {
+  // 徒歩が少ないものを優先。ただし30分以上遅く着くなら次点を選ぶ
+  const cands = [];
+  if (o.walk && o.walk.min <= 5) cands.push({ m: 'walk', walk: o.walk.min, arr: 0 });
+  if (o.tram && o.tram.list.length) cands.push({ m: 'tram', walk: o.tram.walk, arr: o.tram.list[0].arr + o.tram.sb.w });
+  if (o.bus && o.bus.list.length) cands.push({ m: 'bus', walk: o.bus.walk, arr: o.bus.list[0].arr + o.bus.wb });
+  if (!cands.length) return o.tram ? 'tram' : o.walk ? 'walk' : 'tram';
+  const fastest = Math.min(...cands.map(c => c.arr));
+  const ok = cands.filter(c => c.arr - fastest < 30).sort((x, y) => x.walk - y.walk || x.arr - y.arr);
+  return ok[0].m;
+}
+
+// ---- 旅程の描画 ----
+function computePlan() {
+  const kind = dayKind();
+  const P = state.places;
+  const start = state.anchor && state.anchor.idx < P.length ? state.anchor : { idx: 0, leave: parseHM(document.getElementById('startTime').value) ?? nowMin() };
+  const rows = [];
+  let leave = start.leave;
+  for (let i = 0; i < P.length; i++) {
+    const p = P[i];
+    if (i < start.idx) { rows.push({ p, done: true }); continue; }
+    const row = { p, arrive: i === start.idx ? null : rows[i - 1].arriveNext, leave: null };
+    if (i === start.idx) row.leave = leave; else if (row.arrive != null) row.leave = row.arrive + (+p.stay || 0);
+    if (i < P.length - 1 && row.leave != null) {
+      const B = P[i + 1];
+      const key = p.id + '>' + B.id;
+      const o = legOptions(p, B, row.leave, kind);
+      const mode = state.mode[key] && o[state.mode[key]] ? state.mode[key] : autoMode(o);
+      row.leg = { key, o, mode };
+      let arr = null;
+      if (mode === 'tram' && o.tram) {
+        const pick = state.pick[key];
+        const sel = o.tram.list.find(x => x.dep === pick) || o.tram.list[0];
+        row.leg.sel = sel; if (sel) arr = sel.arr + o.tram.sb.w;
+      } else if (mode === 'bus' && o.bus) {
+        const pick = state.pick[key + ':bus'];
+        const sel = o.bus.list.find(x => x.dep === pick) || o.bus.list[0];
+        row.leg.sel = sel; if (sel) arr = sel.arr + o.bus.wb;
+      } else if (mode === 'walk' && o.walk) arr = row.leave + o.walk.min;
+      else if (mode === 'taxi' && o.taxi) arr = row.leave + 5 + o.taxi.min;
+      row.arriveNext = arr;
+    }
+    rows.push(row);
+  }
+  return { rows, kind };
+}
+
+function renderPlan() {
+  const { rows } = computePlan();
+  const now = nowMin();
+  const P = state.places;
+  let h = '';
+  rows.forEach((r, i) => {
+    const p = r.p;
+    const sp = placeStop(p);
+    h += `<div class="card place ${r.done ? 'done' : ''}">
+      <div style="display:flex;justify-content:space-between;gap:8px">
+        <h2>${i + 1}. ${esc(p.name)}</h2>
+        <div class="ctrl">
+          <button onclick="movePlace(${i},-1)" ${i === 0 ? 'disabled' : ''}>▲</button>
+          <button onclick="movePlace(${i},1)" ${i === P.length - 1 ? 'disabled' : ''}>▼</button>
+          <button onclick="delPlace(${i})">✕</button>
+        </div>
+      </div>
+      ${p.note ? `<div class="note">${esc(p.note)}</div>` : ''}
+      <div class="row">
+        ${r.done ? '<span>済</span>' : `
+          ${r.arrive != null ? `<span class="time">着 ${hm(r.arrive)}</span>` : ''}
+          ${r.leave != null && i < P.length - 1 ? `<span class="time">発 ${hm(r.leave)}</span>` : ''}`}
+        ${i < P.length - 1 ? `<span>滞在 <input type="number" min="0" value="${+p.stay || 0}" style="width:64px;padding:2px 4px" onchange="setStay(${i},this.value)"> 分</span>` : ''}
+      </div>
+      <div class="row" style="margin-top:4px">
+        <span>最寄り：${esc(STOPS[sp.i])}電停 徒歩${sp.w}分</span>
+        ${i < P.length - 1 ? `<button class="btn sm fill" onclick="leaveNow(${i})">ここを今出る</button>` : ''}
+      </div>
+    </div>`;
+    if (r.leg) h += renderLeg(r, now);
+    else if (i < P.length - 1 && !r.done) h += `<div class="leg small">（前の区間が決まると表示）</div>`;
+  });
+  document.getElementById('plan').innerHTML = h;
+}
+
+function renderLeg(r, now) {
+  const { key, o, mode, sel } = r.leg;
+  const A = r.p;
+  const modeBtn = (m, label) => o[m] ? `<button class="${mode === m ? 'on' : ''}" onclick="setMode('${key}','${m}')">${label}</button>` : '';
+  let h = `<div class="leg"><div class="modes">
+    ${modeBtn('tram', '🚃 市電' + (o.tram ? `（徒歩${o.tram.walk}分）` : ''))}
+    ${modeBtn('bus', '🚌 バス' + (o.bus ? `（徒歩${o.bus.walk}分）` : ''))}
+    ${o.walk && o.walk.min <= 25 ? modeBtn('walk', `🚶 徒歩${o.walk.min}分`) : ''}
+    ${modeBtn('taxi', '🚕 タクシー')}
+  </div>`;
+  const B = state.places[state.places.findIndex(p => p.id === key.split('>')[1])];
+  if (mode === 'tram' && o.tram) {
+    const { sa, sb, list } = o.tram;
+    h += `<div class="step"><span class="ic">🚶</span><span>${esc(STOPS[sa.i])}電停まで 徒歩${sa.w}分 ${A.lat != null ? `<a class="small" href="${gmapWalk(A, stopPos(sa.i))}" target="_blank" rel="noopener">地図</a>` : ''}</span></div>`;
+    if (!sel) h += `<div class="step"><span class="ic">⚠️</span><span>この後の市電がありません</span></div>`;
+    else {
+      sel.legs.forEach((lg, k) => {
+        if (k > 0) h += `<div class="step"><span class="ic">🔁</span><span>十字街で乗り換え</span></div>`;
+        h += `<div class="step"><span class="ic">🚃</span><span><span class="big">${hm(lg.dep)}</span> ${esc(STOPS[lg.a])} 発 ${k === 0 ? countdown(lg.dep, now) : ''}<br>
+          ${routeTag(lg.tr)} <span class="small">${platformHint(lg.tr)}</span><br>
+          → <b>${hm(lg.arr)}</b> ${esc(STOPS[lg.b])} 着 <span class="small">（${lg.n}駅・${lg.arr - lg.dep}分）</span></span></div>`;
+      });
+      h += `<div class="step"><span class="ic">🚶</span><span>${esc(B.name)}まで 徒歩${sb.w}分 ${B.lat != null ? `<a class="small" href="${gmapWalk(stopPos(sb.i), B)}" target="_blank" rel="noopener">地図</a>` : ''}</span></div>`;
+      h += `<details><summary class="small">他の時刻の電車を選ぶ</summary><ul class="alts">` +
+        list.map(x => `<li class="${x === sel ? 'sel' : ''}" onclick="pick('${key}',${x.dep})">
+          <span><b>${hm(x.dep)}</b> → ${hm(x.arr)}　${routeTag(x.legs[0].tr)}</span><span class="small">${x.legs.length > 1 ? '乗換1回' : ''}</span></li>`).join('') +
+        `</ul></details>`;
+    }
+  } else if (mode === 'bus' && o.bus) {
+    const { bus, wa, wb, list } = o.bus;
+    h += `<div class="step"><span class="ic">🚶</span><span>${esc(bus.from.name)}バス停まで 徒歩${wa}分 <a class="small" href="${gmapWalk(A, bus.from)}" target="_blank" rel="noopener">地図</a></span></div>`;
+    if (!sel) h += `<div class="step"><span class="ic">⚠️</span><span>この後のバスがありません（最終 ${hm(bus[dayKind()].slice(-1)[0][0])}）。市電かタクシーにしてください。</span></div>`;
+    else {
+      h += `<div class="step"><span class="ic">🚌</span><span><span class="big">${hm(sel.dep)}</span> ${esc(bus.from.name)} 発 ${countdown(sel.dep, now)}<br>
+        <span class="tag bus">${esc(sel.label)}</span><br>→ <b>${hm(sel.arr)}</b> ${esc(bus.to.name)} 着 <span class="small">（${bus.dur}分）</span><br>
+        <span class="small">${esc(bus.name)}／${esc(bus.note)}</span></span></div>`;
+      h += `<div class="step"><span class="ic">🚶</span><span>${esc(B.name)}まで 徒歩${wb}分 <a class="small" href="${gmapWalk(bus.to, B)}" target="_blank" rel="noopener">地図</a></span></div>`;
+      h += `<details><summary class="small">他の時刻のバスを選ぶ</summary><ul class="alts">` +
+        list.map(x => `<li class="${x === sel ? 'sel' : ''}" onclick="pick('${key}:bus',${x.dep})"><span><b>${hm(x.dep)}</b> → ${hm(x.arr)}</span><span class="small">${esc(x.label)}</span></li>`).join('') +
+        `</ul></details>`;
+    }
+  } else if (mode === 'walk' && o.walk) {
+    h += `<div class="step"><span class="ic">🚶</span><span>徒歩 約${o.walk.min}分（約${Math.round(o.walk.d * 1.2 / 10) * 10}m） <a class="small" href="${gmapWalk(A, B)}" target="_blank" rel="noopener">地図</a></span></div>`;
+  } else if (mode === 'taxi' && o.taxi) {
+    h += `<div class="step"><span class="ic">🚕</span><span>タクシーで約${o.taxi.min}分（乗車待ち5分を含めて計算） <a class="small" href="${gmapCar(A, B)}" target="_blank" rel="noopener">地図</a><br>
+      <span class="small">徒歩ほぼゼロ。1日乗車券は使えません。</span></span></div>`;
+  }
+  return h + `</div>`;
+}
+function countdown(dep, now) {
+  const d = dep - now;
+  if (d < 0) return '<span class="small">（発車済）</span>';
+  return `<span class="count">あと${d}分</span>`;
+}
+
+// ---- 操作 ----
+function setMode(key, m) { state.mode[key] = m; save(); renderPlan(); }
+function pick(key, dep) { state.pick[key] = dep; save(); renderPlan(); }
+function setStay(i, v) { state.places[i].stay = Math.max(0, +v || 0); save(); renderPlan(); }
+function leaveNow(i) { state.anchor = { idx: i, leave: nowMin() }; state.pick = {}; save(); renderPlan(); }
+function movePlace(i, d) {
+  const P = state.places, j = i + d;
+  if (j < 0 || j >= P.length) return;
+  [P[i], P[j]] = [P[j], P[i]]; state.anchor = null; save(); renderAll();
+}
+function delPlace(i) {
+  if (!confirm(`「${state.places[i].name}」を旅程から外しますか？`)) return;
+  state.places.splice(i, 1); state.anchor = null; save(); renderAll();
+}
+
+// ---- 時刻表検索 ----
+function renderSearch() {
+  const a = +document.getElementById('sFrom').value, b = +document.getElementById('sTo').value;
+  const t = parseHM(document.getElementById('sTime').value) ?? nowMin();
+  const el = document.getElementById('sResult');
+  if (a === b) { el.innerHTML = '<div class="small">乗る電停と降りる電停が同じです</div>'; return; }
+  const list = searchTrams(dayKind(), a, b, t, 12);
+  if (!list.length) { el.innerHTML = '<div class="small">この時刻以降の電車はありません</div>'; return; }
+  const now = nowMin();
+  el.innerHTML = `<table class="tt"><tr><th>発</th><th>着</th><th>電車</th></tr>` + list.map(x =>
+    `<tr><td><b class="big" style="font-size:18px">${hm(x.dep)}</b><br>${countdown(x.dep, now)}</td><td><b>${hm(x.arr)}</b><br><span class="small">${x.arr - x.dep}分</span></td>
+      <td>${x.legs.map((l, k) => (k ? '<span class="small">十字街で乗換 ' + hm(l.dep) + '発</span><br>' : '') + routeTag(l.tr)).join('<br>')}<br><span class="small">${platformHint(x.legs[0].tr)}</span></td></tr>`).join('') + `</table>`;
+}
+
+// ---- 追加 ----
+function renderAdd() {
+  const P = state.places;
+  const sel = document.getElementById('insertPos');
+  sel.innerHTML = P.map((p, i) => `<option value="${i}">「${esc(p.name)}」の前</option>`).join('') + `<option value="${P.length}">最後</option>`;
+  sel.value = String(Math.max(0, P.length - 1));
+  document.getElementById('presets').innerHTML = PRESETS.map((p, k) => {
+    const n = nearestStops(p, 1)[0];
+    return `<div class="preset"><span>${esc(p.name)}<br><span class="small">${esc(STOPS[n.i])}電停 徒歩${walkMin(n.d)}分</span></span>
+      <button class="btn sm" onclick="addPreset(${k})">追加</button></div>`;
+  }).join('');
+}
+function insertPlace(p) {
+  const pos = +document.getElementById('insertPos').value;
+  p.id = 'p' + Date.now().toString(36);
+  state.places.splice(pos, 0, p); state.anchor = null; save(); renderAll(); showTab('plan');
+}
+function addPreset(k) { const p = PRESETS[k]; insertPlace({ name: p.name, lat: p.lat, lng: p.lng, stay: 30, note: '' }); }
+function parseLoc(v) {
+  const m = /(-?\d{1,2}\.\d+)\s*,\s*(-?\d{2,3}\.\d+)/.exec(v || '');
+  return m ? { lat: +m[1], lng: +m[2] } : null;
+}
+
+// ---- 画面切替・初期化 ----
+function showTab(t) {
+  for (const s of ['plan', 'search', 'add', 'info']) document.getElementById('tab-' + s).classList.toggle('hidden', s !== t);
+  document.querySelectorAll('nav button').forEach(b => b.classList.toggle('on', b.dataset.tab === t));
+  if (t === 'add') renderAdd();
+  if (t === 'search') renderSearch();
+  window.scrollTo(0, 0);
+}
+function renderHeader() {
+  const d = new Date();
+  document.getElementById('clock').textContent = `${d.getMonth() + 1}/${d.getDate()}(${'日月火水木金土'[d.getDay()]}) ${hm(nowMin())}`;
+  document.getElementById('dayLabel').textContent = state.day === 'auto' ? (dayKind() === 'holiday' ? '→ 土日祝' : '→ 平日') : '';
+}
+function renderAll() { renderHeader(); renderPlan(); if (!document.getElementById('tab-search').classList.contains('hidden')) renderSearch(); }
+
+function init() {
+  document.querySelectorAll('nav button').forEach(b => b.onclick = () => showTab(b.dataset.tab));
+  const st = document.getElementById('startTime');
+  st.value = state.startTime || hm(nowMin());
+  st.onchange = () => { state.startTime = st.value; state.anchor = null; state.pick = {}; save(); renderPlan(); };
+  document.getElementById('nowBtn').onclick = () => { st.value = hm(nowMin()); st.onchange(); };
+  const dk = document.getElementById('dayKind');
+  dk.value = state.day; dk.onchange = () => { state.day = dk.value; save(); renderAll(); };
+
+  const opts = STOPS.map((s, i) => `<option value="${i}">${esc(s)}</option>`).join('');
+  const sf = document.getElementById('sFrom'), stt = document.getElementById('sTo'), stime = document.getElementById('sTime');
+  sf.innerHTML = opts; stt.innerHTML = opts;
+  sf.value = SI['新川町']; stt.value = SI['十字街']; stime.value = hm(nowMin());
+  [sf, stt, stime].forEach(e => e.onchange = renderSearch);
+  document.getElementById('swapBtn').onclick = () => { [sf.value, stt.value] = [stt.value, sf.value]; renderSearch(); };
+  document.getElementById('sNow').onclick = () => { stime.value = hm(nowMin()); renderSearch(); };
+  document.getElementById('sGeo').onclick = () => geo(pos => {
+    const n = nearestStops(pos, 1)[0];
+    sf.value = n.i; renderSearch();
+    document.getElementById('sGeoMsg').textContent = `現在地の最寄り：${STOPS[n.i]}電停（約${Math.round(n.d)}m・徒歩${walkMin(n.d)}分）`;
+  }, msg => document.getElementById('sGeoMsg').textContent = msg);
+
+  const cStop = document.getElementById('cStop');
+  cStop.innerHTML += STOPS.map(s => `<option>${esc(s)}</option>`).join('');
+  document.getElementById('cGeo').onclick = () => geo(pos => {
+    document.getElementById('cLoc').value = `${pos.lat.toFixed(6)}, ${pos.lng.toFixed(6)}`;
+  }, msg => document.getElementById('cMsg').textContent = msg);
+  document.getElementById('cAdd').onclick = () => {
+    const name = document.getElementById('cName').value.trim();
+    const loc = parseLoc(document.getElementById('cLoc').value);
+    const stop = cStop.value, walk = document.getElementById('cWalk').value;
+    const msg = document.getElementById('cMsg');
+    if (!name) { msg.textContent = '名前を入れてください'; return; }
+    if (!loc && !stop) { msg.textContent = '位置か最寄り電停のどちらかを指定してください'; return; }
+    insertPlace({ name, lat: loc ? loc.lat : null, lng: loc ? loc.lng : null, stop: stop || null, walk: walk === '' ? null : +walk,
+      stay: +document.getElementById('cStay').value || 0, note: document.getElementById('cNote').value.trim() });
+    ['cName', 'cLoc', 'cWalk', 'cNote'].forEach(id => document.getElementById(id).value = ''); cStop.value = ''; msg.textContent = '';
+  };
+  document.getElementById('resetBtn').onclick = () => {
+    if (!confirm('追加した場所や選んだ便をすべて消して、最初の旅程に戻しますか？')) return;
+    localStorage.removeItem(KEY); state = load(); st.value = hm(nowMin()); renderAll();
+  };
+
+  renderAll();
+  setInterval(renderAll, 30000);
+  if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js');
+}
+function geo(ok, ng) {
+  if (!navigator.geolocation) return ng('この端末では現在地が使えません');
+  ng('現在地を取得中…');
+  navigator.geolocation.getCurrentPosition(p => { ng(''); ok({ lat: p.coords.latitude, lng: p.coords.longitude }); },
+    () => ng('現在地を取得できませんでした（位置情報の許可を確認してください）'), { enableHighAccuracy: true, timeout: 10000 });
+}
+init();
+</script>
+</body>
+</html>
